@@ -9785,6 +9785,11 @@
         }
 
                 // ── Front-page tab switcher ─────────────────────────────────
+        function navigateToSchool(emis) {
+            if (!emis || emis === '${r.emis}') return; // guard against unevaluated template
+            showSchoolDetail(emis);
+        }
+
         function renderUnderperformingSchools() {
             try {
             const _tbody = document.getElementById('upSchoolTbody');
@@ -9867,7 +9872,7 @@
 
                     const bad = primaryBad || secondaryBad;
                     const type = minG <= 6 && maxG >= 10 ? 'Combined' : maxG >= 10 ? 'Secondary' : minG >= 7 ? 'Senior' : 'Primary';
-                    return { name: sd.name, circuit: sd.circuit, gradeRange: `${minG}–${maxG}`, type, bad,
+                    return { emis, name: sd.name, circuit: sd.circuit, gradeRange: `${minG}–${maxG}`, type, bad,
                              loltPct, mathsPct, passPct, bachPct,
                              flags: [...primaryFlags, ...secondaryFlags] };
                 });
@@ -9924,7 +9929,9 @@
                     : '<span style="display:inline-block;padding:3px 10px;border-radius:10px;background:#f0fdf4;color:#16a34a;font-weight:700;font-size:0.82em;border:1px solid #86efac;">✓ OK</span>';
                 const td = (v, extra='') => `<td style="padding:7px 10px;border-bottom:1px solid #f3f4f6;text-align:center;color:#374151;${extra}">${v}</td>`;
                 return `<tr style="background:${bg};">
-                    <td style="padding:7px 10px;border-bottom:1px solid #f3f4f6;font-weight:600;color:#1e3a5f;position:sticky;left:0;z-index:1;background:${bg};box-shadow:2px 0 3px rgba(0,0,0,0.05);white-space:nowrap;">${r.name}</td>
+                    <td style="padding:7px 10px;border-bottom:1px solid #f3f4f6;font-weight:600;color:#1e3a5f;position:sticky;left:0;z-index:2;background:${bg};box-shadow:2px 0 3px rgba(0,0,0,0.05);white-space:nowrap;">
+                        <button data-emis="${r.emis}" onclick="navigateToSchool(this.dataset.emis)" style="background:none;border:none;padding:0;cursor:pointer;color:#1e3a5f;font-weight:600;font-size:inherit;font-family:inherit;text-align:left;border-bottom:1px dashed #1e3a5f;" title="Open school dashboard">${r.name}</button>
+                    </td>
                     ${td(r.circuit)}${td(r.type)}${td(r.gradeRange)}
                     ${cell(r.loltPct,60)}${cell(r.mathsPct,60)}${cell(r.passPct,70)}${cell(r.bachPct,30)}
                     <td style="padding:7px 10px;border-bottom:1px solid #f3f4f6;">${flags}</td>
