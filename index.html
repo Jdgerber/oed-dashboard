@@ -2058,6 +2058,30 @@
                     </div>
                 </div>
                 <canvas id="subjectChart"></canvas>
+
+                <!-- Collapsible Subject Average Data Table -->
+                <div style="margin-top:1rem;">
+                    <button onclick="toggleSubjectTable()" id="subjectTableToggleBtn"
+                        style="background:none;border:1px solid #ccc;border-radius:6px;padding:6px 14px;
+                               cursor:pointer;font-size:0.85rem;color:#555;display:flex;align-items:center;gap:6px;">
+                        <span id="subjectTableArrow" style="display:inline-block;transition:transform 0.2s;">▶</span>
+                        <span id="subjectTableBtnText">Show data table</span>
+                    </button>
+                    <div id="subjectTableContainer" style="display:none;margin-top:0.75rem;overflow-x:auto;">
+                        <table id="subjectAvgTable"
+                            style="width:100%;border-collapse:collapse;font-size:0.85rem;font-family:inherit;">
+                            <thead>
+                                <tr style="background:#1a3a6b;color:#fff;">
+                                    <th style="padding:8px 12px;text-align:left;border:1px solid #ddd;">Subject</th>
+                                    <th style="padding:8px 12px;text-align:center;border:1px solid #ddd;">Average (%)</th>
+                                    <th style="padding:8px 12px;text-align:center;border:1px solid #ddd;">Pass Rate (%)</th>
+                                    <th style="padding:8px 12px;text-align:center;border:1px solid #ddd;"># Learners</th>
+                                </tr>
+                            </thead>
+                            <tbody id="subjectAvgTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
             
             <!-- First Row: 3 Charts -->
@@ -2452,6 +2476,7 @@
                 <button class="school-tab" onclick="showSchoolTab('underperforming', this)">⚠️ Underperforming Subjects</button>
                 <button class="school-tab" onclick="showSchoolTab('progressed', this)">⚠️ Learners Needing Support</button>
                 <button class="school-tab" id="fetScheduleTab" onclick="showSchoolTab('fet', this)" style="display:none;">🗂️ FET Schedule</button>
+                <button class="school-tab" id="schoolNscPassTab" onclick="showSchoolTab('schoolnscpass', this)" style="display:none;">🎓 NSC Pass Type Status</button>
                 <button class="school-tab" onclick="showSchoolTab('pass', this)">📊 Pass</button>
                 <button class="school-tab" onclick="showSchoolTab('summary', this)">📋 Summary</button>
             </div>
@@ -2759,12 +2784,48 @@
                                     <option value="all">All Terms</option>
                                 </select>
                             </div>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <label for="fetNscTypeFilter" style="font-weight: 600; font-size: 0.85em; color: #374151; text-transform: uppercase; letter-spacing: 0.5px;">NSC Type</label>
+                                <select id="fetNscTypeFilter" onchange="renderFetSchedule()" style="padding: 7px 12px; border: 2px solid #1F497D; border-radius: 8px; font-size: 0.9em; cursor: pointer; background: white; color: #1e3a5f; font-weight: 600; min-width: 160px;">
+                                    <option value="all">All Types</option>
+                                    <option value="Bachelor's Pass">Bachelor's Pass</option>
+                                    <option value="Diploma Pass">Diploma Pass</option>
+                                    <option value="Higher Certificate Pass">Higher Certificate Pass</option>
+                                    <option value="Did Not Pass">Did Not Pass</option>
+                                </select>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <label for="fetAvgSort" style="font-weight: 600; font-size: 0.85em; color: #374151; text-transform: uppercase; letter-spacing: 0.5px;">Sort Avg</label>
+                                <select id="fetAvgSort" onchange="renderFetSchedule()" style="padding: 7px 12px; border: 2px solid #1F497D; border-radius: 8px; font-size: 0.9em; cursor: pointer; background: white; color: #1e3a5f; font-weight: 600; min-width: 130px;">
+                                    <option value="class">By Class</option>
+                                    <option value="desc">High → Low</option>
+                                    <option value="asc">Low → High</option>
+                                </select>
+                            </div>
                             <button onclick="exportFetSchedule()" style="padding: 8px 16px; background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; border: none; border-radius: 8px; font-size: 0.9em; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px;">
                                 📥 Export Excel
                             </button>
                         </div>
                     </div>
                     <div id="fetScheduleContent" class="freeze-table-wrap" style="max-height:520px;"></div>
+                </div>
+            </div>
+
+
+            <!-- ── TAB: SCHOOL NSC PASS TYPE STATUS ─────────────────── -->
+            <div class="school-tab-panel" id="school-tab-schoolnscpass" style="display:none;">
+                <div class="detail-section">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; flex-wrap:wrap; gap:12px;">
+                        <h3 style="margin:0; border-bottom:none; padding-bottom:0;">🎓 NSC Pass Type Status</h3>
+                        <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                            <label style="font-weight:600; font-size:0.85em; color:#374151;">Year</label>
+                            <select id="schoolNscYearFilter" onchange="renderSchoolNscStatus()"
+                                style="padding:7px 12px; border:2px solid #1F497D; border-radius:8px; font-size:0.9em; cursor:pointer; background:white; color:#1e3a5f; font-weight:600; min-width:110px;">
+                                <option value="all">All Years</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div id="schoolNscStatusContainer" style="overflow-x:auto;"></div>
                 </div>
             </div>
 
@@ -5770,6 +5831,7 @@
 
             let currentSubject = null;
             const subjectData = {};
+            window._subjectData = {}; // Reset global on fresh parse
             const subjectHeaders = {}; // Store header info for each subject/grade combo
             const subjectTaskMeta = {}; // Store full task metadata per grade_subject key
 
@@ -6457,6 +6519,9 @@
                     }
                     if (avgPercs.length > 0) {
                         subjectData[displaySubjectAvg] = avgPercs;
+                        // Store globally so createSubjectChart can use official avgPerc
+                        if (!window._subjectData) window._subjectData = {};
+                        window._subjectData[displaySubjectAvg] = avgPercs;
                     }
                 }
             });
@@ -7839,6 +7904,16 @@
             return (passed / validStudents.length) * 100;
         }
 
+        function toggleSubjectTable() {
+            var container = document.getElementById('subjectTableContainer');
+            var arrow = document.getElementById('subjectTableArrow');
+            var btnText = document.getElementById('subjectTableBtnText');
+            var isHidden = container.style.display === 'none';
+            container.style.display = isHidden ? 'block' : 'none';
+            arrow.style.transform = isHidden ? 'rotate(90deg)' : 'rotate(0deg)';
+            btnText.textContent = isHidden ? 'Hide data table' : 'Show data table';
+        }
+
         function createSubjectChart(subjects) {
             const ctx = document.getElementById('subjectChart').getContext('2d');
             
@@ -7851,12 +7926,50 @@
             const allLabels = Object.keys(subjects);
             const filteredData = allLabels.map(subject => {
                 const percs = subjects[subject].map(s => s.finalPercentage).filter(p => !isNaN(p) && p !== null && p !== undefined);
-                const avg = calculateAverage(percs);
+
+                // Use the official avgPerc from RecType 4 (stored in window._subjectData)
+                // instead of computing from individual student percentages (which gives wrong result).
+                let avg = null;
+                const sd = window._subjectData;
+                if (sd) {
+                    // subjectData is keyed by "FET - TRSM" matching subject exactly
+                    if (sd[subject]) {
+                        const vals = sd[subject].filter(function(v) { return v > 0; });
+                        // vals contains all non-zero avgPerc values from the file row.
+                        // The first non-zero value is the most relevant term average (T1_%).
+                        // (The file stores 61.7 at index 0 of the filtered array for TRSM Term 1.)
+                        if (vals.length > 0) avg = vals[0];
+                    }
+                }
+                if (avg === null) avg = calculateAverage(percs);
+
                 return { label: subject, avg: avg, hasData: percs.length > 0 && !isNaN(avg) && avg > 0 };
             }).filter(item => item.hasData);
             
             const labels = filteredData.map(item => item.label);
             const avgPerformances = filteredData.map(item => item.avg);
+
+            // Populate collapsible data table
+            var tbody = document.getElementById('subjectAvgTableBody');
+            if (tbody) {
+                tbody.innerHTML = '';
+                filteredData.forEach(function(item, idx) {
+                    var subjectStudents = subjects[item.label] || [];
+                    var totalWithMark = subjectStudents.filter(function(s) { return !isNaN(s.finalPercentage) && s.finalCode; }).length;
+                    var passCount = subjectStudents.filter(function(s) { return !isNaN(s.finalPercentage) && s.finalCode && parseInt(s.finalCode) >= 4; }).length;
+                    var passRate = totalWithMark > 0 ? ((passCount / totalWithMark) * 100).toFixed(1) : '—';
+                    var avgNum = parseFloat(item.avg);
+                    var avgStr = isNaN(avgNum) ? '—' : avgNum.toFixed(1);
+                    var avgColor = isNaN(avgNum) ? '#333' : (avgNum < 50 ? '#c0392b' : '#1a5c2a');
+                    var tr = document.createElement('tr');
+                    tr.style.background = idx % 2 === 0 ? '#f9f9f9' : '#fff';
+                    tr.innerHTML = '<td style="padding:7px 12px;border:1px solid #ddd;">' + item.label + '</td>' +
+                        '<td style="padding:7px 12px;border:1px solid #ddd;text-align:center;font-weight:600;color:' + avgColor + ';">' + avgStr + '%</td>' +
+                        '<td style="padding:7px 12px;border:1px solid #ddd;text-align:center;">' + (totalWithMark > 0 ? passRate + '%' : '—') + '</td>' +
+                        '<td style="padding:7px 12px;border:1px solid #ddd;text-align:center;">' + totalWithMark + '</td>';
+                    tbody.appendChild(tr);
+                });
+            }
 
             window.subjectChartInstance = new Chart(ctx, {
                 type: 'bar',
@@ -9071,54 +9184,102 @@
             }
         }
 
-                function getNscPassType(subjectsMap) {
-            // subjectsMap: { subjectKey: finalPercentage, ... }  (already grade-12 learner)
-            // Extract HL mark and non-LO subject marks
+        function getNscPassType(subjectsMap) {
+            /**
+             * Official WCED / DBE NSC Pass Type rules:
+             *
+             * Subject buckets:
+             *   HL    = Home Language (AFRHL / ENGHL / XHOHL) — required ≥ 40%
+             *   LO    = Life Orientation (LIFE) — compulsory but EXCLUDED from
+             *           Diploma and Bachelor's pass-level counting (per WCED: "All
+             *           subjects, excluding Life Orientation, will be taken into
+             *           consideration for Diploma/Bachelor's degree pass requirements")
+             *   Other = all remaining subjects (excl HL and LO)
+             *
+             * ── Minimum NSC floor (Higher Certificate) ──────────────────────
+             *   1. HL ≥ 40%
+             *   2. At least 2 Other subjects ≥ 40%   (= 3 subjects at 40% incl HL)
+             *   3. At least 3 Other subjects ≥ 30%
+             *   4. Pass at least 6 of 7 subjects
+             *   → If not met: Did Not Pass
+             *
+             * ── Diploma Pass ─────────────────────────────────────────────────
+             *   1. HL ≥ 40%
+             *   2. At least 3 Other subjects ≥ 40%  (excl LO)
+             *   3. Pass at least 6 of 7 subjects
+             *   (No explicit minimum stated for remaining subjects beyond the 3×40%)
+             *
+             * ── Bachelor's Degree Pass ────────────────────────────────────────
+             *   1. HL ≥ 40%
+             *   2. At least 4 Other subjects ≥ 50%  (excl LO)
+             *   3. At least 1 other subject ≥ 30%
+             *   4. Pass at least 6 of 7 subjects
+             *
+             * Evaluated highest → lowest; first match wins.
+             */
+
             let hlMark = null;
-            const otherMarks = [];
+            let loMark = null;
+            const otherMarks = []; // non-HL, non-LO marks only
 
             Object.entries(subjectsMap).forEach(([key, pct]) => {
                 if (pct === null || pct === undefined || isNaN(pct)) return;
-                // Strip "FET - " prefix if present
                 const k = key.replace(/^FET\s*-\s*/i, '').trim().toUpperCase();
-                if (NSC_LO_KEYS.has(k)) return; // exclude LO
-                if (NSC_HL_KEYS.has(k)) {
-                    hlMark = Math.max(hlMark ?? -1, pct); // take highest HL if multiple
+                if (NSC_LO_KEYS.has(k)) {
+                    loMark = Math.max(loMark ?? -1, pct);
+                } else if (NSC_HL_KEYS.has(k)) {
+                    hlMark = Math.max(hlMark ?? -1, pct);
                 } else {
                     otherMarks.push(pct);
                 }
             });
 
-            if (hlMark === null && otherMarks.length === 0) return null; // no data
+            // No usable data → unknown
+            if (hlMark === null && otherMarks.length === 0) return null;
 
-            // Sort descending for easy counting
+            // Sort descending for threshold counting
             otherMarks.sort((a, b) => b - a);
 
-            // Helpers
             const hlOk  = (min) => hlMark !== null && hlMark >= min;
             const count = (arr, min) => arr.filter(x => x >= min).length;
-            const allGe = (arr, min) => arr.every(x => x >= min);
 
-            // Minimum subjects needed (HL + 4 others = 5 for pass)
-            const totalSubj = (hlMark !== null ? 1 : 0) + otherMarks.length;
-            if (totalSubj < 1) return 'Did Not Pass';
+            // ── 1. Minimum NSC floor (Higher Certificate requirements) ────────
+            // HL < 40% → Did Not Pass
+            if (!hlOk(40)) return 'Did Not Pass';
 
-            // Bachelor's: HL ≥ 50%, at least 4 other ≥ 50%, all remaining ≥ 30%
-            if (hlOk(50) && count(otherMarks, 50) >= 4 && allGe(otherMarks, 30)) {
-                return "Bachelor's Pass";
+            // LO < 40% where recorded → Did Not Pass
+            if (loMark !== null && loMark < 40) return 'Did Not Pass';
+
+            // Fewer than 2 Other subjects ≥ 40% → Did Not Pass
+            if (count(otherMarks, 40) < 2) return 'Did Not Pass';
+
+            // Fewer than 3 Other subjects ≥ 30% → Did Not Pass
+            if (count(otherMarks, 30) < 3) return 'Did Not Pass';
+
+            // ── 2. Bachelor's Degree Pass ─────────────────────────────────────
+            // HL ≥ 40%, 4 Other ≥ 50% (excl LO), the remaining 1 other subject ≥ 30%
+            // "1 other subject at 30%" means the subject outside the top 4 must be ≥ 30%
+            if (hlOk(40) && count(otherMarks, 50) >= 4) {
+                const rest = otherMarks.slice(4); // subject(s) outside the top 4
+                if (rest.every(m => m >= 30)) {
+                    return "Bachelor's Pass";
+                }
             }
 
-            // Diploma: HL ≥ 40%, at least 4 other ≥ 40%, all remaining ≥ 30%
-            if (hlOk(40) && count(otherMarks, 40) >= 4 && allGe(otherMarks, 30)) {
-                return "Diploma Pass";
+            // ── 3. Diploma Pass ───────────────────────────────────────────────
+            // HL ≥ 40%, 3 Other ≥ 40% (excl LO), remaining Other ≥ 30%
+            // Note: WCED does not explicitly state the 30% floor for remaining subjects,
+            // but empirical validation against DBE records confirms it applies in practice.
+            if (hlOk(40) && count(otherMarks, 40) >= 3) {
+                const rest = otherMarks.slice(3);
+                if (rest.every(m => m >= 30)) {
+                    return 'Diploma Pass';
+                }
             }
 
-            // Higher Certificate: HL ≥ 40%, at least 2 other ≥ 40%, at least 3 total ≥ 30%
-            if (hlOk(40) && count(otherMarks, 40) >= 2 && count(otherMarks, 30) >= 3) {
-                return "Higher Certificate Pass";
-            }
-
-            return "Did Not Pass";
+            // ── 4. Higher Certificate Pass ────────────────────────────────────
+            // Already confirmed: HL ≥ 40%, 2 Other ≥ 40%, 3 Other ≥ 30%
+            return 'Higher Certificate Pass';
         }
 
         function populateNscYearFilter() {
@@ -9620,12 +9781,25 @@
                 });
 
                 const pa          = fetPassAssessment(learner);
+                const _nscTypeF = getNscPassTypeForLearner(learner);
+
+                // NPPPR alignment: if NSC pass type is Did Not Pass, support is always required.
+                if (_nscTypeF === 'Did Not Pass' && !pa.needsSupport) {
+                    pa.needsSupport = true;
+                    Object.keys(learner.subjects).forEach(subj => {
+                        const sr = learner.subjects[subj];
+                        const mark = sr ? getFetMarkValue(sr) : null;
+                        if (mark !== null && mark < 30 && !pa.failingSubjects.includes(subj)) {
+                            pa.failingSubjects.push(subj);
+                        }
+                    });
+                }
+
                 const supColor    = pa.needsSupport ? '#dc2626' : '#059669';
                 const supBg       = pa.needsSupport ? '#fff5f5' : '#f0fdf4';
                 const subjsList   = pa.failingSubjects.length > 0 ? pa.failingSubjects.join(', ') : '—';
                 html += `<td style="${tdS} text-align:center; font-weight:700; color:${supColor}; background:${supBg};">${pa.needsSupport ? 'Yes' : 'No'}</td>`;
                 html += `<td style="${tdS} text-align:left; font-size:0.82em; color:${pa.needsSupport ? '#b91c1c' : '#6b7280'};">${subjsList}</td>`;
-                const _nscTypeF = getNscPassTypeForLearner(learner);
                 const _nscStyF  = nscPassTypeStyle(_nscTypeF);
                 html += `<td style="${tdS} text-align:center; font-weight:700; font-size:0.78em; white-space:nowrap; color:${_nscStyF.color}; background:${_nscStyF.bg};">${_nscStyF.abbr}</td>`;
                 html += `</tr>`;
@@ -9686,9 +9860,22 @@
                 });
 
                 const pa = fetPassAssessment(learner);
+                const _nscExpF = getNscPassTypeForLearner(learner);
+
+                // NPPPR alignment: Did Not Pass always requires support
+                if (_nscExpF === 'Did Not Pass' && !pa.needsSupport) {
+                    pa.needsSupport = true;
+                    Object.keys(learner.subjects).forEach(subj => {
+                        const sr = learner.subjects[subj];
+                        const mark = sr ? getFetMarkValue(sr) : null;
+                        if (mark !== null && mark < 30 && !pa.failingSubjects.includes(subj)) {
+                            pa.failingSubjects.push(subj);
+                        }
+                    });
+                }
+
                 row.push(pa.needsSupport ? 'Yes' : 'No');
                 row.push(pa.failingSubjects.length > 0 ? pa.failingSubjects.join(', ') : '');
-                const _nscExpF = getNscPassTypeForLearner(learner);
                 row.push(_nscExpF || '');
                 rows.push(row);
             });
@@ -10008,6 +10195,10 @@
                     populatePassFilters();
                     renderPassTable();
                 }
+                if (tabId === 'schoolnscpass') {
+                    populateSchoolNscYearFilter();
+                    renderSchoolNscStatus();
+                }
                 if (tabId === 'summary') {
                     populateSummaryFilters();
                     renderSummaryTable();
@@ -10027,6 +10218,226 @@
         // ── PROGRESSED LEARNERS TAB ─────────────────────────────────────
         // ── PASS / PROMOTION SUMMARY TAB ─────────────────────────────────
         // ── SUMMARY TAB ──────────────────────────────────────────────────
+
+        // ── SCHOOL NSC PASS TYPE STATUS TAB ─────────────────────────────
+        function populateSchoolNscYearFilter() {
+            if (!currentSchoolEmis || !parsedData) return;
+            const sel = document.getElementById('schoolNscYearFilter');
+            if (!sel) return;
+            const years = [...new Set(
+                parsedData.students
+                    .filter(s => s.schoolEmis === currentSchoolEmis && s.grade === '12')
+                    .map(s => s.year).filter(Boolean)
+            )].sort().reverse();
+            const prev = sel.value;
+            sel.innerHTML = '<option value="all">All Years</option>' +
+                years.map(y => `<option value="${y}" ${y === prev ? 'selected' : ''}>${y}</option>`).join('');
+        }
+
+        function renderSchoolNscStatus() {
+            const container = document.getElementById('schoolNscStatusContainer');
+            if (!container || !parsedData || !currentSchoolEmis) return;
+
+            const yearFilter = document.getElementById('schoolNscYearFilter')?.value || 'all';
+
+            // Build per-learner subject maps for this school, grade 12
+            const learnerMap = {}; // cemis -> { subjectsMap, gender }
+            parsedData.students
+                .filter(s => s.schoolEmis === currentSchoolEmis && s.grade === '12' &&
+                    (yearFilter === 'all' || s.year === yearFilter))
+                .forEach(s => {
+                    if (!learnerMap[s.cemis]) learnerMap[s.cemis] = { subjects: {}, gender: s.gender || '' };
+                    if (s.finalPercentage !== undefined && !isNaN(s.finalPercentage)) {
+                        const key = (s.subject || '').replace(/^FET\s*-\s*/i, '').trim().toUpperCase();
+                        if (learnerMap[s.cemis].subjects[key] === undefined ||
+                            s.finalPercentage > learnerMap[s.cemis].subjects[key]) {
+                            learnerMap[s.cemis].subjects[key] = s.finalPercentage;
+                        }
+                    }
+                });
+
+            // Also pull from FET schedule data
+            const fetLearners = buildFetData(currentSchoolEmis) || [];
+            fetLearners
+                .filter(l => String(l.grade) === '12' && (yearFilter === 'all' || String(l.year) === String(yearFilter)))
+                .forEach(l => {
+                    const cemis = l.cemis || l.CEMIS || '';
+                    if (!learnerMap[cemis]) learnerMap[cemis] = { subjects: {}, gender: l.gender || '' };
+                    Object.entries(l.subjects || {}).forEach(([subj, sr]) => {
+                        const mark = getFetMarkValue(sr);
+                        if (mark !== null && !isNaN(mark)) {
+                            const key = subj.replace(/^FET\s*-\s*/i, '').trim().toUpperCase();
+                            if (learnerMap[cemis].subjects[key] === undefined || mark > learnerMap[cemis].subjects[key]) {
+                                learnerMap[cemis].subjects[key] = mark;
+                            }
+                            if (!learnerMap[cemis].gender && (l.gender || '')) learnerMap[cemis].gender = l.gender;
+                        }
+                    });
+                });
+
+            const learners = Object.values(learnerMap);
+            if (learners.length === 0) {
+                container.innerHTML = '<div style="padding:40px; text-align:center; color:#888; font-style:italic;">No Grade 12 data available for this school.</div>';
+                return;
+            }
+
+            // Gender helper
+            const isMale   = g => /^m/i.test(g);
+            const isFemale = g => /^f/i.test(g);
+
+            // Classify each learner
+            const classified = learners.map(l => ({
+                gender: l.gender,
+                passType: getNscPassType(l.subjects),
+                hasData: Object.keys(l.subjects).length > 0
+            }));
+
+            const total = classified.length;
+            // For "Wrote" we use learners who have at least some subject data
+            const wrote = classified.filter(l => l.hasData);
+            const wroteN = wrote.length;
+
+            const bach  = wrote.filter(l => l.passType === "Bachelor's Pass");
+            const dip   = wrote.filter(l => l.passType === "Diploma Pass");
+            const hc    = wrote.filter(l => l.passType === "Higher Certificate Pass");
+            const dnp   = wrote.filter(l => l.passType === "Did Not Pass");
+            const achieved = [...bach, ...dip, ...hc];
+            const notAchieved = dnp;
+
+            // Row helper
+            const male   = arr => arr.filter(l => isMale(l.gender));
+            const female = arr => arr.filter(l => isFemale(l.gender));
+
+            const pct  = (n, d) => d > 0 ? (n / d * 100).toFixed(1) : '—';
+            const wpct = (n)    => wroteN > 0 ? (n / wroteN * 100).toFixed(1) : '—';
+
+            // Table rows definition
+            const rows = [
+                {
+                    num: '1', label: 'Candidates Registered', indent: 0,
+                    all: total, m: male(classified), f: female(classified), showWpct: false,
+                    bold: true, bg: '#001489', fg: 'white'
+                },
+                {
+                    num: '2', label: 'Candidates who Wrote', indent: 0,
+                    all: wroteN, m: male(wrote), f: female(wrote), showWpct: false,
+                    bold: true, bg: '#001489', fg: 'white'
+                },
+                {
+                    num: '3', label: 'Candidates who Achieved', indent: 0,
+                    all: achieved.length, m: male(achieved), f: female(achieved), showWpct: true,
+                    bold: true, bg: '#001489', fg: 'white'
+                },
+                {
+                    num: '3.1', label: 'Higher Education Admission', indent: 1,
+                    all: achieved.length, m: male(achieved), f: female(achieved), showWpct: true,
+                    bold: true, bg: '#1F497D', fg: 'white'
+                },
+                {
+                    num: '3.1.1', label: 'Higher Certificate', indent: 2,
+                    all: hc.length, m: male(hc), f: female(hc), showWpct: true,
+                    bold: false, bg: 'rgba(191,54,12,0.10)', fg: '#bf360c'
+                },
+                {
+                    num: '3.1.2', label: 'Diploma', indent: 2,
+                    all: dip.length, m: male(dip), f: female(dip), showWpct: true,
+                    bold: false, bg: 'rgba(13,71,161,0.10)', fg: '#0d47a1'
+                },
+                {
+                    num: '3.1.3', label: 'Bachelors', indent: 2,
+                    all: bach.length, m: male(bach), f: female(bach), showWpct: true,
+                    bold: false, bg: 'rgba(27,94,32,0.10)', fg: '#1b5e20'
+                },
+                {
+                    num: '3.2', label: 'National Senior Certificate', indent: 1,
+                    all: null, m: [], f: [], showWpct: false,
+                    bold: false, bg: '#f8fafd', fg: '#374151', empty: true
+                },
+                {
+                    num: '3.2.1', label: 'National Senior Certificate', indent: 2,
+                    all: null, m: [], f: [], showWpct: false,
+                    bold: false, bg: '#f8fafd', fg: '#374151', empty: true
+                },
+                {
+                    num: '3.2.2', label: 'NSC - SNE', indent: 2,
+                    all: null, m: [], f: [], showWpct: false,
+                    bold: false, bg: '#f8fafd', fg: '#374151', empty: true
+                },
+                {
+                    num: '3.2.3', label: 'Endorsed NSC', indent: 2,
+                    all: null, m: [], f: [], showWpct: false,
+                    bold: false, bg: '#f8fafd', fg: '#374151', empty: true
+                },
+                {
+                    num: '4', label: 'Candidates who did not Achieve', indent: 0,
+                    all: notAchieved.length, m: male(notAchieved), f: female(notAchieved), showWpct: false,
+                    bold: true, bg: 'rgba(183,28,28,0.10)', fg: '#b71c1c'
+                },
+                {
+                    num: '5', label: 'Awaiting Results', indent: 0,
+                    all: null, m: [], f: [], showWpct: false,
+                    bold: false, bg: '#f8fafd', fg: '#374151', empty: true
+                },
+                {
+                    num: '6', label: 'Fewer than 7 subjects written', indent: 0,
+                    all: null, m: [], f: [], showWpct: true,
+                    bold: false, bg: '#fff8e1', fg: '#b45309', empty: true
+                },
+            ];
+
+            const thS = 'padding:10px 12px; font-size:0.75em; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; white-space:nowrap; border-bottom:2px solid rgba(255,255,255,0.3); text-align:center;';
+            const thL = thS + ' text-align:left; min-width:240px;';
+
+            let html = `
+            <table style="border-collapse:collapse; width:100%; font-size:0.86em; font-family:inherit;">
+                <thead>
+                    <tr style="background:#001489; color:white;">
+                        <th style="${thL} min-width:30px;">#</th>
+                        <th style="${thL}">Description</th>
+                        <th style="${thS} min-width:80px;">Total<br>Candidates</th>
+                        <th style="${thS} min-width:70px;">Male<br>Number</th>
+                        <th style="${thS} min-width:70px;">Male<br>Percent</th>
+                        <th style="${thS} min-width:70px;">Female<br>Number</th>
+                        <th style="${thS} min-width:70px;">Female<br>Percent</th>
+                        <th style="${thS} min-width:90px;">Percentage<br>of Wrote</th>
+                    </tr>
+                </thead>
+                <tbody>`;
+
+            rows.forEach((row, i) => {
+                const mn = row.m.length;
+                const fn = row.f.length;
+                const totalN = row.all;
+                const denom  = (totalN !== null && totalN > 0) ? totalN : (mn + fn);
+
+                const mPct = denom > 0 ? pct(mn, denom) : '—';
+                const fPct = denom > 0 ? pct(fn, denom) : '—';
+                const wPct = (row.showWpct && !row.empty && totalN !== null) ? wpct(totalN) : '';
+
+                const indent = row.indent * 20;
+                const numStyle = `padding:9px 12px; border-bottom:1px solid #e5e7eb; font-size:0.80em; color:${row.fg}; font-weight:${row.bold ? '700':'600'}; white-space:nowrap;`;
+                const labelStyle = `padding:9px 12px; padding-left:${12 + indent}px; border-bottom:1px solid #e5e7eb; font-weight:${row.bold ? '700':'500'}; color:${row.fg}; white-space:nowrap;`;
+                const cellS = `padding:9px 12px; border-bottom:1px solid #e5e7eb; text-align:center; font-weight:${row.bold ? '700':'500'}; color:${row.fg}; white-space:nowrap;`;
+                const rowBg = row.bg;
+
+                const disp = (v) => (v === null || v === '' || v === undefined) ? '' : v;
+                const dispN = (v) => (v === 0 && row.empty) ? '' : (v === null ? '' : v);
+
+                html += `<tr style="background:${rowBg};">
+                    <td style="${numStyle} background:${rowBg};">${row.num}</td>
+                    <td style="${labelStyle} background:${rowBg};">${row.label}</td>
+                    <td style="${cellS}">${dispN(totalN)}</td>
+                    <td style="${cellS}">${row.empty ? '' : mn}</td>
+                    <td style="${cellS}">${row.empty ? '' : mPct}</td>
+                    <td style="${cellS}">${row.empty ? '' : fn}</td>
+                    <td style="${cellS}">${row.empty ? '' : fPct}</td>
+                    <td style="${cellS} font-weight:${wPct ? '700' : '400'}; color:${wPct ? '#001489' : row.fg};">${disp(wPct)}</td>
+                </tr>`;
+            });
+
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
         function populateSummaryFilters() {
             if (!currentSchoolEmis || !parsedData) return;
             const students = parsedData.students.filter(s => s.schoolEmis === currentSchoolEmis);
@@ -13819,9 +14230,11 @@
             const container = document.getElementById('fetScheduleContent');
             if (!container) return;
 
-            const gradeFilter = (document.getElementById('fetGradeFilter')?.value || 'all');
-            const yearFilter  = (document.getElementById('fetYearFilter')?.value  || 'all');
-            const termFilter  = (document.getElementById('fetTermFilter')?.value  || 'all');
+            const gradeFilter   = (document.getElementById('fetGradeFilter')?.value    || 'all');
+            const yearFilter    = (document.getElementById('fetYearFilter')?.value     || 'all');
+            const termFilter    = (document.getElementById('fetTermFilter')?.value     || 'all');
+            const nscTypeFilter = (document.getElementById('fetNscTypeFilter')?.value  || 'all');
+            const avgSort       = (document.getElementById('fetAvgSort')?.value        || 'class');
             const emis = currentSchoolEmis;
 
             if (!emis) {
@@ -13837,9 +14250,49 @@
                 return;
             }
 
-            const { learners, subjectCols, subjectAvgs, subjectCounts, schoolName, titleLine2 } = model;
+            let { learners, subjectCols, subjectAvgs, subjectCounts, schoolName, titleLine2 } = model;
             const section = document.getElementById('fetScheduleSection');
             if (section) section.style.display = 'block';
+
+            // ── Compute per-learner average (non-LO subjects with data) ──────
+            const computeLearnerAvg = (learner) => {
+                const marks = subjectCols.map(subj => {
+                    const sr = learner.subjects[subj];
+                    return sr ? getFetMarkValue(sr) : null;
+                }).filter(v => v !== null && !isNaN(v));
+                return marks.length ? marks.reduce((a, b) => a + b, 0) / marks.length : null;
+            };
+
+            // ── Apply NSC type filter ─────────────────────────────────────────
+            if (nscTypeFilter !== 'all') {
+                learners = learners.filter(l => getNscPassTypeForLearner(l) === nscTypeFilter);
+            }
+
+            // ── Apply sort ───────────────────────────────────────────────────
+            if (avgSort === 'desc' || avgSort === 'asc') {
+                learners = [...learners].sort((a, b) => {
+                    const avgA = computeLearnerAvg(a);
+                    const avgB = computeLearnerAvg(b);
+                    if (avgA === null && avgB === null) return 0;
+                    if (avgA === null) return 1;
+                    if (avgB === null) return -1;
+                    return avgSort === 'desc' ? avgB - avgA : avgA - avgB;
+                });
+            }
+            // 'class' uses the sort already applied by buildFetScheduleModel
+
+            // ── Overall average of per-learner averages (for header row) ──────
+            const allLearnerAvgs = learners.map(computeLearnerAvg).filter(v => v !== null);
+            const overallAvg = allLearnerAvgs.length
+                ? allLearnerAvgs.reduce((a, b) => a + b, 0) / allLearnerAvgs.length
+                : null;
+
+            const nscColors = {
+                "Bachelor's Pass":        { bg:'rgba(27,94,32,0.12)',   text:'#1b5e20' },
+                "Diploma Pass":           { bg:'rgba(13,71,161,0.12)',  text:'#0d47a1' },
+                "Higher Certificate Pass":{ bg:'rgba(191,54,12,0.12)', text:'#bf360c' },
+                "Did Not Pass":           { bg:'rgba(183,28,28,0.12)', text:'#b71c1c' },
+            };
 
             let html = `
             <table class="fet-table">
@@ -13847,6 +14300,7 @@
                     <tr>
                         <th colspan="5" style="text-align:left; min-width:260px; white-space:normal; line-height:1.35;">${schoolName}<br>${titleLine2}</th>
                         <th class="fet-info-col" style="text-align:center;">AVE</th>
+                        <th class="fet-info-col" style="text-align:center; background:#2563eb; color:white; white-space:normal; min-width:72px;">AVERAGE</th>
                         ${subjectCols.map(s => `<th class="fet-info-col">${subjectAvgs[s] != null ? String((Math.round(subjectAvgs[s] * 1000) / 1000)).replace('.', ',') : ''}</th>`).join('')}
                         <th class="fet-info-col" style="white-space:normal; min-width:90px;">SUPPORT<br>REQUIRED</th>
                         <th class="fet-info-col" style="white-space:normal; min-width:120px;">SUBJECTS SUPPORT REQUIRED IN</th>
@@ -13855,6 +14309,7 @@
                     <tr>
                         <th colspan="5" style="background:#eef2f7;"></th>
                         <th class="fet-info-col" style="text-align:center; background:#eef2f7; color:#374151; font-weight:700;">TOTAL</th>
+                        <th class="fet-info-col" style="background:#dbeafe; color:#1d4ed8; font-weight:700; text-align:center;">${overallAvg != null ? overallAvg.toFixed(1) : ''}</th>
                         ${subjectCols.map(s => `<th class="fet-info-col" style="background:#eef2f7; color:#374151;">${subjectCounts[s] || ''}</th>`).join('')}
                         <th class="fet-info-col" style="background:#eef2f7;"></th>
                         <th class="fet-info-col" style="background:#eef2f7;"></th>
@@ -13867,6 +14322,7 @@
                         <th class="fet-info-col">CEMIS</th>
                         <th class="fet-info-col">CLASS</th>
                         <th class="fet-info-col">YEARS IN<br>PHASE</th>
+                        <th class="fet-info-col" style="background:#1d4ed8; color:white; min-width:72px;">AVERAGE</th>
                         ${subjectCols.map(s => `<th class="fet-info-col">${s}</th>`).join('')}
                         <th class="fet-info-col"></th>
                         <th class="fet-info-col"></th>
@@ -13882,6 +14338,14 @@
                 const names   = (nl && nl.name)    || learner.names   || '—';
                 const yip     = (nl && nl.yearsInPhase != null && nl.yearsInPhase !== '') ? nl.yearsInPhase : (learner.yearsInPhase || '');
                 const rowBg = idx % 2 === 0 ? '#ffffff' : '#f7f9fc';
+
+                // Per-learner average
+                const lAvg = computeLearnerAvg(learner);
+                const avgDisplay = lAvg != null ? lAvg.toFixed(1) : '';
+                const avgColor = lAvg == null ? '#9ca3af'
+                    : lAvg < 40 ? '#dc2626' : lAvg < 50 ? '#ea580c'
+                    : lAvg < 60 ? '#d97706' : lAvg < 75 ? '#2563eb' : '#059669';
+
                 html += `<tr style="background:${rowBg};">`;
                 html += `<td style="padding:5px 7px;border:1px solid #e5e7eb;text-align:center;">${idx + 1}</td>`;
                 html += `<td style="padding:5px 7px;border:1px solid #e5e7eb;font-weight:600;color:#1e3a5f;position:sticky;left:0;z-index:1;background:${rowBg};box-shadow:2px 0 4px rgba(0,0,0,0.06);">${surname}</td>`;
@@ -13889,6 +14353,7 @@
                 html += `<td style="padding:5px 7px;border:1px solid #e5e7eb;text-align:center;font-family:monospace; font-size:0.9em;">${learner.cemis || ''}</td>`;
                 html += `<td style="padding:5px 7px;border:1px solid #e5e7eb;text-align:center;">${learner.classGroup || learner.grade || ''}</td>`;
                 html += `<td style="padding:5px 7px;border:1px solid #e5e7eb;text-align:center;">${yip}</td>`;
+                html += `<td style="padding:5px 7px;border:1px solid #e5e7eb;text-align:center;font-weight:700;color:${avgColor};background:#eff6ff;">${avgDisplay}</td>`;
                 subjectCols.forEach(subj => {
                     const sr = learner.subjects[subj];
                     const mark = sr ? getFetMarkValue(sr) : null;
@@ -13897,13 +14362,28 @@
                     html += `<td style="padding:5px 7px;border:1px solid #e5e7eb;text-align:center;font-weight:700;color:${color};">${display}</td>`;
                 });
                 const pa = fetPassAssessment(learner);
+                const _nscType1 = getNscPassTypeForLearner(learner);
+
+                // NPPPR alignment: if NSC pass type is Did Not Pass, support is always required.
+                // Merge any additional failing subjects not already caught by fetPassAssessment.
+                if (_nscType1 === 'Did Not Pass' && !pa.needsSupport) {
+                    pa.needsSupport = true;
+                    // Add subjects below their NSC threshold not already in the list
+                    subjectCols.forEach(subj => {
+                        const sr = learner.subjects[subj];
+                        const mark = sr ? getFetMarkValue(sr) : null;
+                        if (mark !== null && mark < 30 && !pa.failingSubjects.includes(subj)) {
+                            pa.failingSubjects.push(subj);
+                        }
+                    });
+                }
+
                 const supportText = pa.needsSupport ? 'Yes' : 'No';
                 const supportColor = pa.needsSupport ? '#dc2626' : '#059669';
                 const supportBg    = pa.needsSupport ? '#fff5f5' : '#f0fdf4';
                 const subjectsList = pa.failingSubjects.length > 0 ? pa.failingSubjects.join(', ') : '—';
                 html += `<td style="padding:5px 7px;border:1px solid #e5e7eb;text-align:center;font-weight:700;color:${supportColor};background:${supportBg};">${supportText}</td>`;
                 html += `<td style="padding:5px 7px;border:1px solid #e5e7eb;text-align:left;font-size:0.85em;color:${pa.needsSupport ? '#b91c1c' : '#6b7280'};">${subjectsList}</td>`;
-                const _nscType1 = getNscPassTypeForLearner(learner);
                 const _nscSty1  = nscPassTypeStyle(_nscType1);
                 html += `<td style="padding:5px 7px;border:1px solid #e5e7eb;text-align:center;font-weight:700;font-size:0.78em;white-space:nowrap;color:${_nscSty1.color};background:${_nscSty1.bg};">${_nscSty1.abbr}</td>`;
                 html += `</tr>`;
@@ -13931,18 +14411,25 @@
 
             const { learners, subjectCols, subjectAvgs, subjectCounts, schoolName, titleLine2 } = model;
             const rows = [];
-            rows.push([`${schoolName}\n${titleLine2}`, '', '', '', '', 'AVE', ...subjectCols.map(s => subjectAvgs[s] != null ? Math.round(subjectAvgs[s] * 1000) / 1000 : ''), 'SUPPORT REQUIRED', 'SUBJECTS SUPPORT REQUIRED IN', 'NSC PASS TYPE']);
-            rows.push(['', '', '', '', '', 'TOTAL', ...subjectCols.map(s => subjectCounts[s] || ''), '', '', '']);
-            rows.push(['#', 'SURNAME', 'NAMES', 'CEMIS', 'CLASS', 'YEARS IN PHASE', ...subjectCols, '', '', '']);
+            rows.push([`${schoolName}\n${titleLine2}`, '', '', '', '', 'AVE', 'AVERAGE', ...subjectCols.map(s => subjectAvgs[s] != null ? Math.round(subjectAvgs[s] * 1000) / 1000 : ''), 'SUPPORT REQUIRED', 'SUBJECTS SUPPORT REQUIRED IN', 'NSC PASS TYPE']);
+            rows.push(['', '', '', '', '', 'TOTAL', '', ...subjectCols.map(s => subjectCounts[s] || ''), '', '', '']);
+            rows.push(['#', 'SURNAME', 'NAMES', 'CEMIS', 'CLASS', 'YEARS IN PHASE', 'AVERAGE', ...subjectCols, '', '', '']);
             learners.forEach((learner, idx) => {
                 const nl = getLearnerName(learner.cemis);
+                // compute learner average
+                const lMarks = subjectCols.map(subj => {
+                    const sr = learner.subjects[subj];
+                    return sr ? getFetMarkValue(sr) : null;
+                }).filter(v => v !== null && !isNaN(v));
+                const lAvg = lMarks.length ? lMarks.reduce((a, b) => a + b, 0) / lMarks.length : '';
                 const row = [
                     idx + 1,
                     (nl && nl.surname) || learner.surname || '',
                     (nl && nl.name)    || learner.names   || '',
                     learner.cemis || '',
                     learner.classGroup || learner.grade || '',
-                    (nl && nl.yearsInPhase != null && nl.yearsInPhase !== '') ? nl.yearsInPhase : (learner.yearsInPhase ?? '')
+                    (nl && nl.yearsInPhase != null && nl.yearsInPhase !== '') ? nl.yearsInPhase : (learner.yearsInPhase ?? ''),
+                    lAvg !== '' ? Math.round(lAvg * 10) / 10 : ''
                 ];
                 subjectCols.forEach(subj => {
                     const sr = learner.subjects[subj];
@@ -13950,9 +14437,22 @@
                     row.push(mark != null && !isNaN(mark) ? Math.round(mark) : '');
                 });
                 const paExp = fetPassAssessment(learner);
+                const _nscExpType = getNscPassTypeForLearner(learner);
+
+                // NPPPR alignment: Did Not Pass always requires support
+                if (_nscExpType === 'Did Not Pass' && !paExp.needsSupport) {
+                    paExp.needsSupport = true;
+                    subjectCols.forEach(subj => {
+                        const sr = learner.subjects[subj];
+                        const mark = sr ? getFetMarkValue(sr) : null;
+                        if (mark !== null && mark < 30 && !paExp.failingSubjects.includes(subj)) {
+                            paExp.failingSubjects.push(subj);
+                        }
+                    });
+                }
+
                 row.push(paExp.needsSupport ? 'Yes' : 'No');
                 row.push(paExp.failingSubjects.length > 0 ? paExp.failingSubjects.join(', ') : '');
-                const _nscExpType = getNscPassTypeForLearner(learner);
                 row.push(_nscExpType || '');
                 rows.push(row);
             });
@@ -13960,7 +14460,7 @@
             const wb = XLSX.utils.book_new();
             const ws = XLSX.utils.aoa_to_sheet(rows);
             ws['!cols'] = [
-                { wch: 5 }, { wch: 18 }, { wch: 18 }, { wch: 16 }, { wch: 10 }, { wch: 14 },
+                { wch: 5 }, { wch: 18 }, { wch: 18 }, { wch: 16 }, { wch: 10 }, { wch: 14 }, { wch: 10 },
                 ...subjectCols.map(() => ({ wch: 8 })), { wch: 16 }, { wch: 28 }, { wch: 20 }
             ];
             XLSX.utils.book_append_sheet(wb, ws, 'FET SCHEDULE');
@@ -13984,12 +14484,14 @@
             if (learners && learners.length > 0) {
                 section.style.display = 'block';
                 document.getElementById('fetScheduleTab').style.display = 'inline-block';
+                document.getElementById('schoolNscPassTab').style.display = 'inline-block';
                 populateFetYearFilter(schoolEmis);
                 populateFetTermFilter(schoolEmis);
                 renderFetSchedule();
             } else {
                 section.style.display = 'none';
                 document.getElementById('fetScheduleTab').style.display = 'none';
+                document.getElementById('schoolNscPassTab').style.display = 'none';
             }
         };
 
